@@ -23,10 +23,21 @@ def read_data():
     """Read order and customer CSV files."""
     data_dir = Path(__file__).parent / 'data'
     
-    orders_df = pd.read_csv(data_dir / 'orders.csv')
+    # Read customer data
     customers_df = pd.read_csv(data_dir / 'customers.csv')
     
-    print(f"Loaded {len(orders_df)} orders and {len(customers_df)} customers")
+    # Read all order CSV files and concatenate them
+    order_files = list(data_dir.glob('orders*.csv'))
+    orders_dfs = []
+    
+    for order_file in order_files:
+        print(f"Reading {order_file.name}...")
+        df = pd.read_csv(order_file)
+        orders_dfs.append(df)
+    
+    orders_df = pd.concat(orders_dfs, ignore_index=True)
+    
+    print(f"Loaded {len(orders_df)} orders from {len(order_files)} file(s) and {len(customers_df)} customers")
     return orders_df, customers_df
 
 
