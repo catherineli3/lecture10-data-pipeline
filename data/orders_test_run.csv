@@ -1,0 +1,4 @@
+order_id,customer_id,amount,amount_currency,order_date
+22,113,300,EUR,2024-01-22
+23,114,150,JPY,2024-01-23
+24,115,200,USD,2024-01-24
