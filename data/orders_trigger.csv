@@ -1,0 +1,2 @@
+order_id,customer_id,amount,amount_currency,order_date
+20,111,180,EUR,2024-01-20
