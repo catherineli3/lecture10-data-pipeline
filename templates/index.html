@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .refresh-info {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .highlight-cny {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #888;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Orders Dashboard</h1>
+        
+        <div class="refresh-info">
+            Data updates automatically when database changes | Last update: <span id="lastUpdate">Loading...</span>
+        </div>
+
+        <div class="grid">
+            <div class="card" id="ordersCard">
+                <h2>📋 Orders Table</h2>
+                <div id="ordersTable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Region</th>
+                                <th>Amount (CNY)</th>
+                                <th>Order Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.order_id }}</td>
+                                <td>{{ order.name }}</td>
+                                <td>{{ order.region }}</td>
+                                <td class="highlight-cny">¥{{ "%.2f"|format(order.amount_cny) }}</td>
+                                <td>{{ order.order_date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="last-updated">Total: {{ orders|length }} orders</div>
+            </div>
+
+            <div class="card" id="summaryCard">
+                <h2>📈 Summary by Region</h2>
+                <div id="summaryTable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Region</th>
+                                <th>Avg Amount (CNY)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in summary %}
+                            <tr>
+                                <td>{{ row.region }}</td>
+                                <td class="highlight-cny">¥{{ "%.2f"|format(row.avg_amount_cny) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="last-updated">{{ summary|length }} regions</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateLastUpdate() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+        }
+
+        async function refreshData() {
+            try {
+                const ordersResponse = await fetch('/api/orders');
+                const orders = await ordersResponse.json();
+
+                const summaryResponse = await fetch('/api/summary');
+                const summary = await summaryResponse.json();
+
+                // Update orders table
+                const ordersTable = document.querySelector('#ordersTable table tbody');
+                ordersTable.innerHTML = orders.map(order => `
+                    <tr>
+                        <td>${order.order_id}</td>
+                        <td>${order.name}</td>
+                        <td>${order.region}</td>
+                        <td class="highlight-cny">¥${parseFloat(order.amount_cny).toFixed(2)}</td>
+                        <td>${order.order_date}</td>
+                    </tr>
+                `).join('');
+                
+                document.querySelector('#ordersCard .last-updated').textContent = `Total: ${orders.length} orders`;
+
+                // Update summary table
+                const summaryTable = document.querySelector('#summaryTable table tbody');
+                summaryTable.innerHTML = summary.map(row => `
+                    <tr>
+                        <td>${row.region}</td>
+                        <td class="highlight-cny">¥${parseFloat(row.avg_amount_cny).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+                
+                document.querySelector('#summaryCard .last-updated').textContent = `${summary.length} regions`;
+
+                updateLastUpdate();
+                console.log('Data refreshed successfully');
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+
+        // Update timestamp on load
+        updateLastUpdate();
+
+        // Auto-refresh every 10 seconds
+        setInterval(refreshData, 10000);
+    </script>
+</body>
+</html>
